@@ -12,6 +12,7 @@
 #import "GKWYNavigationController.h"
 #import <AVFoundation/AVFoundation.h>
 #import "GKWYMusicModel.h"
+#import <AFNetworking/AFNetworkReachabilityManager.h>
 
 @interface AppDelegate ()
 
@@ -39,6 +40,33 @@
     [self setupPlayBtn];
     
     [self loadMusicList];
+    
+    // 网络监测
+    AFNetworkReachabilityManager *manager = [AFNetworkReachabilityManager sharedManager];
+    
+    [manager setReachabilityStatusChangeBlock:^(AFNetworkReachabilityStatus status) {
+        switch (status) {
+            case AFNetworkReachabilityStatusReachableViaWWAN:
+                [GKWYMusicTool setNetworkState:@"wwan"];
+                break;
+            case AFNetworkReachabilityStatusReachableViaWiFi:
+                [GKWYMusicTool setNetworkState:@"wifi"];
+                break;
+            case AFNetworkReachabilityStatusNotReachable:
+                [GKWYMusicTool setNetworkState:@"none"];
+                break;
+            case AFNetworkReachabilityStatusUnknown:
+                [GKWYMusicTool setNetworkState:@"none"];
+                break;
+                
+            default:
+                break;
+        }
+        // 发送网络状态改变的通知
+        [[NSNotificationCenter defaultCenter] postNotificationName:@"NetworkStateChangedNotification" object:nil];
+    }];
+    
+    [manager startMonitoring];
     
     return YES;
 }
@@ -70,22 +98,33 @@
 }
 
 - (void)loadMusicList {
-
-    [GKHttpManager getRequestWithApi:@"gkMustic" params:nil successBlock:^(id responseObject) {
-        
-        NSArray *musics = [NSArray yy_modelArrayWithClass:[GKWYMusicModel class] json:responseObject];
-        
-        [GKWYMusicTool saveMusicList:musics];
-        
-        NSString *currentMusicID = [[NSUserDefaults standardUserDefaults] objectForKey:kPlayerLastPlayIDKey];
-        
-        NSInteger index = [GKWYMusicTool indexFromID:currentMusicID];
-        
-        [kWYPlayerVC loadMusicWithIndex:index list:[GKWYMusicTool musicList]];
-        
-    } failureBlock:^(NSError *error) {
-        NSLog(@"%@", error);
-    }];
+    
+    //    [GKHttpManager getRequestWithApi:@"gkMustic" params:nil successBlock:^(id responseObject) {
+    //
+    //        NSArray *musics = [NSArray yy_modelArrayWithClass:[GKWYMusicModel class] json:responseObject];
+    //
+    //        [GKWYMusicTool saveMusicList:musics];
+    //
+    //        NSString *currentMusicID = [[NSUserDefaults standardUserDefaults] objectForKey:kPlayerLastPlayIDKey];
+    //
+    //        NSInteger index = [GKWYMusicTool indexFromID:currentMusicID];
+    //
+    //        [kWYPlayerVC loadMusicWithIndex:index list:[GKWYMusicTool musicList]];
+    //
+    //    } failureBlock:^(NSError *error) {
+    //        NSLog(@"%@", error);
+    //    }];
+    
+    NSArray *musics = [GKWYMusicTool musicList];
+    
+    [GKWYMusicTool saveMusicList:musics];
+    
+    NSString *currentMusicID = [[NSUserDefaults standardUserDefaults] objectForKey:kPlayerLastPlayIDKey];
+    
+    NSInteger index = [GKWYMusicTool indexFromID:currentMusicID];
+    
+    [kWYPlayerVC loadMusicWithIndex:index list:[GKWYMusicTool musicList]];
+    
 }
 
 - (void)setupPlayBtn {

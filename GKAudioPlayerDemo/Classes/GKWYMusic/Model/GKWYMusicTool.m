@@ -22,6 +22,14 @@
 + (NSArray *)musicList {
     NSArray *musics = [NSKeyedUnarchiver unarchiveObjectWithFile:kDataPath];
     
+    if (!musics) {
+        NSString *path = [[NSBundle mainBundle] pathForResource:@"audio" ofType:@"json"];
+        
+        NSData *data = [NSData dataWithContentsOfFile:path];
+        
+        musics = [NSArray yy_modelArrayWithClass:[GKWYMusicModel class] json:data];
+    }
+    
     return musics;
 }
 
@@ -76,6 +84,16 @@
     UIGraphicsEndImageContext();
     
     return image;
+}
+
++ (NSString *)networkState {
+    return [[NSUserDefaults standardUserDefaults] objectForKey:@"networkState"];
+}
+
++ (void)setNetworkState:(NSString *)state {
+    NSUserDefaults *defaults = [NSUserDefaults standardUserDefaults];
+    [defaults setObject:state forKey:@"networkState"];
+    [defaults synchronize];
 }
 
 @end
